@@ -110,7 +110,7 @@ def export_to_onnx(model: nn.Module, output_path: str = "model.onnx"):
 
 def main():
     parser = argparse.ArgumentParser(description="EcoSort Model Training Template")
-    parser.add_argument("--data_dir", type=str, default="data/public", help="Path to public dataset")
+    parser.add_argument("--data_dir", type=str, default=".", help="Path to public dataset")
     parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
