@@ -1,5 +1,7 @@
 <h1 align="center">EcoSort</h1>
 
+<img width="2400" height="1792" alt="Gemini_Generated_Image_770q63770q63770q" src="https://github.com/user-attachments/assets/04dbce26-55da-42f9-8bff-537ebd8dd04d" />
+
 <h2 align="center"><strong>Efficient and accurate waste classification for edge devices.</strong><br> Sort smart. Save the planet.</h2>
 
 <details>
@@ -17,7 +19,9 @@
 
 # Architecture Diagram
 
-*(Placeholder for EcoSort Architecture Diagram)*
+<img width="979" height="550" alt="ecosort architecture (1)" src="https://github.com/user-attachments/assets/fb789fe7-3410-4454-9cb1-93aebd048096" />
+
+<img width="1504" height="323" alt="ecosort workflow (1)" src="https://github.com/user-attachments/assets/e94a079b-9c82-458b-a484-3e7e3933dc57" />
 
 ## The Problem
 
