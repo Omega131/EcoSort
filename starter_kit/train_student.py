@@ -18,6 +18,7 @@ def get_student_dataloaders(data_dir, batch_size=32, num_workers=2):
         transforms.Resize((96, 96)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomRotation(10), # Mild rotation instead of heavy TrivialAugment
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2), # Added color jitter for robust lighting
         transforms.ToTensor(),
         # No RandomErasing for the tiny student!
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]) 
