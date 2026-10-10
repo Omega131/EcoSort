@@ -1,38 +1,74 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 class SEBlock(nn.Module):
     """Squeeze-and-Excitation Attention Module"""
     def __init__(self, in_channels, reduction=4):
         super().__init__()
-        # 'Squeeze' phase: Average pool the feature map down to a single pixel per channel (1x1)
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        
-        # 'Excitation' phase: Two small linear layers to learn which channels matter
         reduced_channels = max(1, in_channels // reduction)
         self.fc = nn.Sequential(
             nn.Linear(in_channels, reduced_channels, bias=False),
             nn.GELU(),
             nn.Linear(reduced_channels, in_channels, bias=False),
-            nn.Sigmoid() # Squashes output between 0 and 1
+            nn.Sigmoid()
         )
     def forward(self, x):
         b, c, _, _ = x.size()
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
-        # Scale the original input by the learned attention weights
         return x * y.expand_as(x)
-class InvertedResidual(nn.Module):
-    """MobileNetV3 style Inverted Residual Block with SE"""
-    def __init__(self, in_channels, out_channels, stride, expand_ratio):
+
+class MobileMQA(nn.Module):
+    """Extremely lightweight Mobile Multi-Query Attention"""
+    def __init__(self, in_channels, head_dim=8):
+        super().__init__()
+        self.q = nn.Conv2d(in_channels, head_dim, kernel_size=1, bias=False)
+        self.k = nn.Conv2d(in_channels, head_dim, kernel_size=1, bias=False)
+        self.v = nn.Conv2d(in_channels, head_dim, kernel_size=1, bias=False)
+        self.proj = nn.Conv2d(head_dim, in_channels, kernel_size=1, bias=False)
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.scale = head_dim ** -0.5
+        
+    def forward(self, x):
+        B, C, H, W = x.size()
+        
+        q = self.q(x).view(B, -1, H*W).permute(0, 2, 1) # B, H*W, head_dim
+        
+        # Pool KV to save computation (1x1 spatial resolution for K and V)
+        x_pooled = self.pool(x)
+        k = self.k(x_pooled).view(B, -1, 1)             # B, head_dim, 1
+        v = self.v(x_pooled).view(B, -1, 1).permute(0, 2, 1) # B, 1, head_dim
+        
+        attn = torch.matmul(q, k) * self.scale          # B, H*W, 1
+        attn = F.softmax(attn, dim=1)
+        
+        out = torch.matmul(attn, v)                     # B, H*W, head_dim
+        out = out.permute(0, 2, 1).view(B, -1, H, W)
+        out = self.proj(out)
+        return x + out
+
+class UniversalInvertedBottleneck(nn.Module):
+    """MobileNetV4 style Universal Inverted Bottleneck (UIB)"""
+    def __init__(self, in_channels, out_channels, stride, expand_ratio, uib_type='standard', use_mqa=False):
         super().__init__()
         self.stride = stride
         hidden_dim = int(round(in_channels * expand_ratio))
-        
-        # Skip connection is only possible if input and output sizes match exactly
         self.use_res_connect = self.stride == 1 and in_channels == out_channels
+        
         layers = []
-        # 1. Pointwise Expansion (only if expand_ratio > 1)
+        
+        # ConvNeXt / ExtraDW start with Depthwise
+        if uib_type in ['convnext', 'extra_dw']:
+            start_stride = stride if uib_type in ['convnext', 'extra_dw'] else 1
+            layers.extend([
+                nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=start_stride, padding=1, groups=in_channels, bias=False),
+                nn.BatchNorm2d(in_channels),
+                nn.GELU()
+            ])
+            
+        # Pointwise Expansion
         if expand_ratio != 1:
             layers.extend([
                 nn.Conv2d(in_channels, hidden_dim, kernel_size=1, stride=1, padding=0, bias=False),
@@ -40,29 +76,32 @@ class InvertedResidual(nn.Module):
                 nn.GELU()
             ])
             
-        # 2. Depthwise Convolution
-        # Notice `groups=hidden_dim`: This tells PyTorch to apply a separate filter to EACH channel.
-        # This is where we save 90% of our parameters compared to a standard CNN!
-        layers.extend([
-            nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, stride=stride, padding=1, groups=hidden_dim, bias=False),
-            nn.BatchNorm2d(hidden_dim),
-            nn.GELU()
-        ])
-        
-        # 3. Squeeze-and-Excitation Attention
-        layers.append(SEBlock(hidden_dim))
-        
-        # 4. Pointwise Linear Projection back to out_channels 
-        # (Notice there is NO activation function here, to prevent information loss)
+        # Middle Depthwise
+        if uib_type in ['standard', 'extra_dw']:
+            middle_stride = stride if uib_type == 'standard' else 1
+            layers.extend([
+                nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, stride=middle_stride, padding=1, groups=hidden_dim, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                nn.GELU()
+            ])
+            
+        # Attention
+        if use_mqa:
+            layers.append(MobileMQA(hidden_dim))
+        else:
+            layers.append(SEBlock(hidden_dim))
+            
+        # Pointwise Projection
         layers.extend([
             nn.Conv2d(hidden_dim, out_channels, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(out_channels)
         ])
         
         self.conv = nn.Sequential(*layers)
+        
     def forward(self, x):
         if self.use_res_connect:
-            return x + self.conv(x)  # Skip connection
+            return x + self.conv(x)
         else:
             return self.conv(x)
 
@@ -70,44 +109,44 @@ class EcoNet(nn.Module):
     def __init__(self, num_classes=6):
         super().__init__()
         
-        # 1. Initial Convolution (Transforms 3 RGB channels into 16, shrinks 96x96 -> 48x48)
         self.first_conv = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(16),
             nn.GELU()
         )
         
-        # 2. Main Inverted Residual Blocks (Increased Configuration)
+        # MobileNetV4 Block Configs:
+        # out_c, stride, expand, uib_type, use_mqa
         block_configs = [
-            # (out_channels, stride, expand_ratio)
-            (16, 1, 1),
-            (24, 2, 4),  
-            (24, 1, 4),
-            (32, 2, 4),
-            (32, 1, 4),
-            (48, 2, 4),
-            (48, 1, 4),
-            (64, 1, 4),
-            (64, 1, 4),
-            (96, 2, 4),
+            (16, 1, 1, 'convnext', False),
+            (24, 1, 4, 'extra_dw', False), # Late-stage downsampling (delayed stride 2)
+            (24, 2, 4, 'extra_dw', False),
+            (32, 1, 4, 'standard', False), 
+            (32, 2, 4, 'standard', False),
+            (48, 1, 4, 'extra_dw', False), 
+            (48, 2, 4, 'extra_dw', False),
+            (64, 1, 4, 'standard', True),  # Using MobileMQA
+            (64, 2, 4, 'standard', True),  # Using MobileMQA
+            (96, 1, 4, 'extra_dw', True),  # Using MobileMQA
         ]
         
         layers = []
         in_c = 16
-        for out_c, s, exp in block_configs:
-            layers.append(InvertedResidual(in_channels=in_c, out_channels=out_c, stride=s, expand_ratio=exp))
+        for out_c, s, exp, uib, mqa in block_configs:
+            layers.append(UniversalInvertedBottleneck(
+                in_channels=in_c, out_channels=out_c, stride=s, expand_ratio=exp,
+                uib_type=uib, use_mqa=mqa
+            ))
             in_c = out_c
             
         self.blocks = nn.Sequential(*layers)
         
-        # 3. Final Pointwise Convolution 
         self.final_conv = nn.Sequential(
             nn.Conv2d(96, 320, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(320),
             nn.GELU()
         )
         
-        # 4. Classifier Head
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Sequential(
             nn.Dropout(0.4), 
@@ -119,20 +158,14 @@ class EcoNet(nn.Module):
         x = self.blocks(x)
         x = self.final_conv(x)
         x = self.pool(x)
-        x = torch.flatten(x, 1) # Flattens from [Batch, Channels, 1, 1] to [Batch, Channels]
+        x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
 
-# --- TEST BLOCK ---
-# This allows us to run `python model.py` directly to check our architecture!
 if __name__ == '__main__':
     model = EcoNet(num_classes=6)
-    
-    # Calculate parameter count
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Total Parameters: {total_params:,}")
-    
-    # Test a dummy image passing through the network
     dummy_image = torch.randn(1, 3, 96, 96)
     output = model(dummy_image)
-    print(f"Output shape (Batch Size, Classes): {output.shape}")
+    print(f"Output shape: {output.shape}")
