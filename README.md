@@ -11,7 +11,6 @@
 - [Model Constraints & Optimization](#model-constraints--optimization)
 - [Training Methodology](#training-methodology)
 - [Deployment](#deployment)
-- [Team Members](#team-members)
 - [License](#license)
 
 </details>
@@ -19,10 +18,6 @@
 # Architecture Diagram
 
 *(Placeholder for EcoSort Architecture Diagram)*
-
-## Demo Video
-
-*(Placeholder for Demo Video)*
 
 ## The Problem
 
@@ -74,10 +69,6 @@ python starter_kit/train_student.py --data_dir . --teacher_weights teacher.pth
 # 3. Verify the exported ONNX model against constraints
 python starter_kit/verify_submission.py
 ```
-
-## Team Members
-
-- *(Add your names here)*
 
 ## License
 
