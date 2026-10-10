@@ -110,7 +110,7 @@ class EcoNet(nn.Module):
         # 4. Classifier Head
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Sequential(
-            nn.Dropout(0.2), 
+            nn.Dropout(0.4), 
             nn.Linear(320, num_classes)
         )
 
