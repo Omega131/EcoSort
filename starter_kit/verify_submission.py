@@ -31,11 +31,11 @@ def count_onnx_parameters(onnx_model_path: str) -> int:
 
 def verify_submission(onnx_path: str, val_dir: str = ""):
     print("=" * 60)
-    print(" 🛠️  EcoSort Pre-Submission Verification")
+    print(" EcoSort Pre-Submission Verification")
     print("=" * 60)
 
     if not os.path.exists(onnx_path):
-        print(f"❌ Error: Model file not found at '{onnx_path}'")
+        print(f"Error: Model file not found at '{onnx_path}'")
         sys.exit(1)
 
     all_passed = True
@@ -125,9 +125,9 @@ def verify_submission(onnx_path: str, val_dir: str = ""):
 
     print("=" * 60)
     if all_passed:
-        print("🎉 ALL CONSTRAINT CHECKS PASSED! Your file is ready for submission.")
+        print("ALL CONSTRAINT CHECKS PASSED! Your file is ready for submission.")
     else:
-        print("⚠️ SOME CHECKS FAILED. Please fix the violations before submitting.")
+        print("SOME CHECKS FAILED. Please fix the violations before submitting.")
     print("=" * 60)
 
 
