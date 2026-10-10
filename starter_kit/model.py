@@ -123,11 +123,11 @@ class EcoNet(nn.Module):
             (24, 2, 4, 'extra_dw', False),
             (32, 1, 4, 'standard', False), 
             (32, 2, 4, 'standard', False),
-            (48, 1, 4, 'extra_dw', False), 
-            (48, 2, 4, 'extra_dw', False),
-            (64, 1, 4, 'standard', True),  # Using MobileMQA
-            (64, 2, 4, 'standard', True),  # Using MobileMQA
-            (96, 1, 4, 'extra_dw', True),  # Using MobileMQA
+            (48, 1, 5, 'extra_dw', False), 
+            (48, 2, 5, 'extra_dw', False),
+            (64, 1, 6, 'standard', True),  # Using MobileMQA
+            (64, 2, 6, 'standard', True),  # Using MobileMQA
+            (96, 1, 5, 'extra_dw', True),  # Using MobileMQA
         ]
         
         layers = []
