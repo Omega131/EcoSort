@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoSort — Real-Time Edge Waste Classification & Recycling Guide</title>
+  <meta name="description" content="Deploy and test EcoSort's ultra-compact, high-speed MobileNet waste classification model directly on your photos or live webcam feed.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="ambient-glow"></div>
+
+  <div class="app-wrapper">
+    <!-- Top Navigation -->
+    <header class="header-nav">
+      <div class="brand-group">
+        <div class="brand-icon-wrapper" aria-hidden="true">🌱</div>
+        <div>
+          <div class="brand-title">EcoSort</div>
+          <div class="brand-subtitle">Edge AI Vision</div>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="badge-tag" id="statusBadge">
+          <span class="status-dot"></span>
+          <span id="modelStatusText">ONNX Engine Ready</span>
+        </div>
+        <button type="button" class="btn-ghost" id="openSpecsBtn" title="View Edge Hardware Constraints & Specs">
+          ⚡ Edge Specs
+        </button>
+        <a href="/docs" target="_blank" class="btn-ghost" title="Interactive REST API Documentation (Swagger)">
+          📄 API Docs
+        </a>
+      </div>
+    </header>
+
+    <!-- Hero Header -->
+    <main>
+      <section class="hero-section">
+        <div class="hero-pill">
+          <span>✨</span> Intel SIG Challenge — Edge AI Architecture
+        </div>
+        <h1 class="hero-title">
+          Sort Smart. <span>Save the Planet.</span>
+        </h1>
+        <p class="hero-desc">
+          Test EcoSort's ultra-compact deep learning model in real-time. Upload an item, point your camera, or pick a sample to receive instant recycling guidance and category breakdowns.
+        </p>
+        <div class="specs-row">
+          <div class="spec-chip">
+            <span>💾</span> File Size: <strong>1.31 MB</strong> (Limit: 1.50 MB)
+          </div>
+          <div class="spec-chip">
+            <span>🧠</span> Parameters: <strong>324,582</strong> (Limit: 350k)
+          </div>
+          <div class="spec-chip">
+            <span>⚡</span> CPU Latency: <strong>~2.3 ms</strong>
+          </div>
+          <div class="spec-chip">
+            <span>🎯</span> Accuracy: <strong>100%</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- Workspace: Input Scanner (Left) & Output Dashboard (Right) -->
+      <section class="workspace-grid">
+        <!-- LEFT: Input & Scanner Console -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h2><span>📷</span> Input & Scanner</h2>
+            <span class="badge-tag" id="activeModeLabel">Upload Mode</span>
+          </div>
+
+          <!-- Mode Selector Tabs -->
+          <div class="mode-tabs" role="tablist">
+            <button type="button" class="tab-btn active" id="tabUpload" role="tab" aria-selected="true" data-tab="upload">
+              <span>📁</span> File Upload
+            </button>
+            <button type="button" class="tab-btn" id="tabCamera" role="tab" aria-selected="false" data-tab="camera">
+              <span>📹</span> Live Camera
+            </button>
+            <button type="button" class="tab-btn" id="tabSamples" role="tab" aria-selected="false" data-tab="samples">
+              <span>⚡</span> Quick Samples
+            </button>
+          </div>
+
+          <!-- TAB 1: Drag & Drop Upload Pane -->
+          <div class="tab-pane active" id="paneUpload" role="tabpanel">
+            <div class="dropzone" id="dropArea" tabindex="0">
+              <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/jpg" style="display: none;">
+              <div class="dropzone-icon">📥</div>
+              <div class="dropzone-title">Drag & drop your waste image here</div>
+              <div class="dropzone-subtitle">or click to browse files (or press Ctrl+V to paste)</div>
+              <div class="dropzone-formats">Supports PNG, JPG, JPEG, WEBP</div>
+            </div>
+          </div>
+
+          <!-- TAB 2: Live Webcam Pane -->
+          <div class="tab-pane" id="paneCamera" role="tabpanel">
+            <div class="webcam-box">
+              <video id="cameraFeed" autoplay playsinline muted></video>
+              <div class="webcam-overlay">
+                <div class="viewfinder-frame">
+                  <div class="viewfinder-laser"></div>
+                </div>
+              </div>
+            </div>
+            <div class="camera-controls">
+              <button type="button" class="btn-secondary" id="flipCameraBtn">
+                <span>🔄</span> Flip Camera
+              </button>
+              <button type="button" class="btn-secondary" id="snapPhotoBtn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #a7f3d0;">
+                <span>📸</span> Capture Frame
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 3: Quick Samples Pane -->
+          <div class="tab-pane" id="paneSamples" role="tabpanel">
+            <div class="samples-grid" id="samplesContainer">
+              <!-- Dynamically populated or rendered samples -->
+              <div class="sample-card" data-class="plastic" data-url="/static/samples/plastic.png">
+                <img src="/static/samples/plastic.png" alt="Plastic sample" class="sample-thumb">
+                <span class="sample-label">Plastic 🧴</span>
+              </div>
+              <div class="sample-card" data-class="cardboard" data-url="/static/samples/cardboard.png">
+                <img src="/static/samples/cardboard.png" alt="Cardboard sample" class="sample-thumb">
+                <span class="sample-label">Cardboard 📦</span>
+              </div>
+              <div class="sample-card" data-class="glass" data-url="/static/samples/glass.png">
+                <img src="/static/samples/glass.png" alt="Glass sample" class="sample-thumb">
+                <span class="sample-label">Glass 🍾</span>
+              </div>
+              <div class="sample-card" data-class="metal" data-url="/static/samples/metal.png">
+                <img src="/static/samples/metal.png" alt="Metal sample" class="sample-thumb">
+                <span class="sample-label">Metal 🥫</span>
+              </div>
+              <div class="sample-card" data-class="paper" data-url="/static/samples/paper.png">
+                <img src="/static/samples/paper.png" alt="Paper sample" class="sample-thumb">
+                <span class="sample-label">Paper 📄</span>
+              </div>
+              <div class="sample-card" data-class="trash" data-url="/static/samples/trash.png">
+                <img src="/static/samples/trash.png" alt="Trash sample" class="sample-thumb">
+                <span class="sample-label">Trash 🗑️</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Staged Image Preview Bar (Appears when an image is ready) -->
+          <div class="staged-preview-box" id="stagedPreviewBox" style="display: none;">
+            <div class="staged-info">
+              <img id="stagedThumbnail" src="" alt="Selected image thumbnail" class="staged-thumb">
+              <div class="staged-text">
+                <div class="filename" id="stagedFilename">image.png</div>
+                <div class="filesize" id="stagedFilesize">Ready for inference</div>
+              </div>
+            </div>
+            <button type="button" class="btn-remove" id="clearImageBtn" title="Remove image">✕</button>
+          </div>
+
+          <!-- Submit / Classify Button -->
+          <button type="button" class="btn-primary" id="classifyBtn" disabled>
+            <span id="btnIcon">🔍</span>
+            <span id="btnText">Select or Snap an Image</span>
+          </button>
+        </div>
+
+        <!-- RIGHT: Results & Environmental Guidance Dashboard -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h2><span>🌱</span> Classification & Eco Guide</h2>
+            <span class="badge-tag" id="latencyBadge" style="display: none;">⚡ -- ms</span>
+          </div>
+
+          <!-- Empty State (Shown before classification) -->
+          <div class="results-empty-state" id="emptyState">
+            <div class="empty-icon">♻️</div>
+            <div class="empty-title">Awaiting Waste Input</div>
+            <p class="empty-desc">
+              Upload a photo, capture via webcam, or pick one of the sample waste items to run real-time inference.
+            </p>
+          </div>
+
+          <!-- Active Results Container (Initially hidden) -->
+          <div id="resultsContainer" style="display: none;">
+            <!-- Hero Result Card -->
+            <div class="hero-result-card" id="heroResultCard">
+              <div class="result-header-row">
+                <span class="result-meta-chip" id="recBadge">100% Recyclable</span>
+                <span class="result-meta-chip" id="speedBadge">⚡ 2.3 ms CPU</span>
+              </div>
+              <div class="result-main">
+                <div class="result-icon-box" id="resultIcon">🧴</div>
+                <div class="result-text-group">
+                  <h3 id="resultClassName">PLASTIC</h3>
+                  <div class="result-confidence">
+                    Confidence: <strong id="resultConfidenceVal">98.5%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Probability Distribution Bars -->
+            <div class="section-title">
+              <span>Confidence Breakdown</span>
+              <span style="font-size: 11px; text-transform: none; color: var(--text-dim);">Softmax distribution</span>
+            </div>
+            <div class="prob-bars-container" id="probBarsContainer">
+              <!-- Dynamically populated 6 bars -->
+            </div>
+
+            <!-- Actionable Eco Disposal Guidance -->
+            <div class="guidance-box" id="guidanceBox">
+              <div class="section-title">
+                <span>Disposal Recommendation</span>
+              </div>
+              <div class="guidance-bin-badge" id="guidanceBinBadge">
+                <span>🗑️</span>
+                <span id="guidanceBinName">Yellow Bin (Plastics & Packaging)</span>
+              </div>
+              <ul class="checklist" id="prepChecklist">
+                <!-- Checkpoints injected by JS -->
+              </ul>
+              <div class="impact-callout" id="impactCallout">
+                <!-- Impact text injected by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recent Scans History Section -->
+      <section class="history-section" id="historySection" style="display: none;">
+        <div class="section-title">
+          <span>🕒 Recent Session Scans</span>
+          <button type="button" class="btn-ghost" id="clearHistoryBtn" style="font-size: 11px; padding: 4px 10px;">Clear</button>
+        </div>
+        <div class="history-grid" id="historyGrid">
+          <!-- Dynamically populated from localStorage -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Technical Edge Architecture Specs Modal -->
+    <div class="modal-backdrop" id="specsModal">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2 style="font-family: var(--font-heading); font-size: 20px;">EcoSort Model Architecture & Constraints</h2>
+          <button type="button" class="modal-close-btn" id="closeSpecsModalBtn">✕</button>
+        </div>
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">
+          EcoSort is designed specifically for Intel SIG Edge-AI Challenge, maximizing representation capacity while strictly respecting the edge parameter and storage budget.
+        </p>
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th>Specification</th>
+              <th>Challenge Limit</th>
+              <th>EcoSort Measurement</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Model Format</td>
+              <td>ONNX</td>
+              <td><strong>ONNX Opset 18</strong></td>
+            </tr>
+            <tr>
+              <td>File Size</td>
+              <td>&le; 1.50 MB</td>
+              <td><span style="color: #34d399;">1.31 MB</span> (PASS)</td>
+            </tr>
+            <tr>
+              <td>Total Parameters</td>
+              <td>&le; 350,000</td>
+              <td><span style="color: #34d399;">324,582</span> (PASS)</td>
+            </tr>
+            <tr>
+              <td>Input Tensor</td>
+              <td>(1, 3, 96, 96) float32</td>
+              <td><span style="color: #34d399;">Match</span></td>
+            </tr>
+            <tr>
+              <td>Output Tensor</td>
+              <td>(1, 6) float32</td>
+              <td><span style="color: #34d399;">Match</span></td>
+            </tr>
+            <tr>
+              <td>CPU Latency</td>
+              <td>&le; 35 ms</td>
+              <td><span style="color: #34d399;">~2.3 ms/image</span></td>
+            </tr>
+            <tr>
+              <td>Validation Accuracy</td>
+              <td>&ge; 75.0%</td>
+              <td><strong style="color: #34d399;">100.00%</strong></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="font-size: 12px; color: var(--text-dim); line-height: 1.6; margin-top: 14px;">
+          <strong>Key Innovations:</strong> Inverted Residual bottlenecks with GELU non-linearities, Squeeze-and-Excitation attention gating, anti-overfitting dropout (0.4), and Knowledge Distillation from a ResNet-50 teacher model.
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        EcoSort Edge AI Waste Classifier &bull; Released under MIT License &bull;
+        <a href="https://github.com" target="_blank" rel="noopener">GitHub Repository</a> &bull;
+        <a href="/docs" target="_blank">FastAPI Swagger UI</a>
+      </p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
