@@ -1,3 +1,14 @@
+---
+title: EcoSort Edge AI Waste Classifier
+emoji: 🌱
+colorFrom: green
+colorTo: emerald
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 <h1 align="center">EcoSort</h1>
 
 <img width="2400" height="1792" alt="Gemini_Generated_Image_770q63770q63770q" src="https://github.com/user-attachments/assets/04dbce26-55da-42f9-8bff-537ebd8dd04d" />
@@ -59,19 +70,52 @@ EcoSort leverages **Knowledge Distillation** to train the compact student model 
 - **Student Model:** Our lightweight architecture acts as the student, learning to mimic the teacher's soft targets.
 - **Optimization:** We train the student to perfectly match the teacher's performance, retaining accuracy with just a fraction of the computational cost.
 
-## Deployment
+## Deployment & Live Web Application
 
-To deploy the model or train it locally:
+### 1. Launch the Interactive Web App & REST API
+Deploy and test the model immediately on your own images or live camera:
 
 ```bash
-# 1. Install dependencies
+# Install dependencies
 pip install -r starter_kit/requirements.txt
 
-# 2. Train the student model (Knowledge Distillation)
-python starter_kit/train_student.py --data_dir . --teacher_weights teacher.pth
+# Start the web app and API server
+python run_app.py
+```
 
-# 3. Verify the exported ONNX model against constraints
+- **Interactive Web Interface:** Open [http://localhost:8000](http://localhost:8000) in your browser.
+  - 📁 **Drag-and-Drop File Upload:** Upload custom photos of waste items.
+  - 📹 **Live Camera Scanner:** Real-time camera viewfinder with instant frame capture.
+  - ⚡ **1-Click Sample Test Drive:** Instant classification across 6 waste categories.
+  - 📊 **Confidence Meters & Recycling Guidance:** Actionable bin recommendations (Blue, Yellow, Green, Gray), preparation steps, and environmental impact facts.
+- **Interactive Swagger REST API Docs:** Available at [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### 2. Edge / IoT API Usage (`curl` & Python)
+Integrate EcoSort directly into smart bins or microcontrollers:
+
+```bash
+# Classify an image via curl
+curl -X POST "http://localhost:8000/api/predict" \
+     -F "file=@your_waste_image.jpg"
+```
+
+```python
+import requests
+
+with open("item.jpg", "rb") as f:
+    response = requests.post("http://localhost:8000/api/predict", files={"file": f})
+result = response.json()
+print(f"Detected: {result['predicted_class']} ({result['confidence']}%) in {result['latency_ms']} ms")
+print(f"Recommended Bin: {result['guidance']['bin_name']}")
+```
+
+### 3. Verification & Local Training
+```bash
+# Verify the exported ONNX model against competition constraints
 python starter_kit/verify_submission.py
+
+# Optional: Retrain the student model via Knowledge Distillation
+python starter_kit/train_student.py --data_dir . --teacher_weights teacher.pth
 ```
 
 ## License
