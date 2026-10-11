@@ -4,18 +4,33 @@
 
 <h2 align="center"><strong>Efficient and accurate waste classification for edge devices.</strong><br> Sort smart. Save the planet.</h2>
 
+<p align="center">
+  <a href="https://ecosort-2h7b.onrender.com/"><img src="https://img.shields.io/badge/Render-Live%20API%20%26%20Web%20App-46e3b7?style=for-the-badge&logo=render&logoColor=white" alt="Render Live"></a>
+  <a href="https://ecosort-2h7b.onrender.com/docs"><img src="https://img.shields.io/badge/REST%20API-Swagger%20Docs-85EA2D?style=for-the-badge&logo=swagger&logoColor=black" alt="Swagger Docs"></a>
+  <a href="https://Omega131.github.io/EcoSort/"><img src="https://img.shields.io/badge/GitHub%20Pages-Client--Side%20WASM-blue?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Pages"></a>
+</p>
+
 <details>
 <summary style="font-size: 24px; font-weight: bold; cursor: pointer;"><h1>Table of Contents</h1></summary>
 
+- [Live Deployments](#live-deployments)
 - [Architecture Diagram](#architecture-diagram)
 - [The Problem](#the-problem)
 - [Our solution](#our-solution)
 - [Model Constraints & Optimization](#model-constraints--optimization)
 - [Training Methodology](#training-methodology)
-- [Deployment](#deployment)
+- [API Usage & Local Deployment](#api-usage--local-deployment)
 - [License](#license)
 
 </details>
+
+## Live Deployments
+
+EcoSort is deployed and accessible online:
+
+- 🚀 **Full-Stack Web App & REST API (Render):** [https://ecosort-2h7b.onrender.com/](https://ecosort-2h7b.onrender.com/)
+- 📚 **Interactive Swagger API Documentation:** [https://ecosort-2h7b.onrender.com/docs](https://ecosort-2h7b.onrender.com/docs)
+- 🌐 **Client-Side WebAssembly App (GitHub Pages):** [https://Omega131.github.io/EcoSort/](https://Omega131.github.io/EcoSort/)
 
 # Architecture Diagram
 
@@ -59,43 +74,44 @@ EcoSort leverages **Knowledge Distillation** to train the compact student model 
 - **Student Model:** Our lightweight architecture acts as the student, learning to mimic the teacher's soft targets.
 - **Optimization:** We train the student to perfectly match the teacher's performance, retaining accuracy with just a fraction of the computational cost.
 
-## Deployment & Live Web Application
+## API Usage & Local Deployment
 
-### 1. Launch the Interactive Web App & REST API
-Deploy and test the model immediately on your own images or live camera:
-
-```bash
-# Install dependencies
-pip install -r starter_kit/requirements.txt
-
-# Start the web app and API server
-python run_app.py
-```
-
-- **Interactive Web Interface:** Open [http://localhost:8000](http://localhost:8000) in your browser.
-  - 📁 **Drag-and-Drop File Upload:** Upload custom photos of waste items.
-  - 📹 **Live Camera Scanner:** Real-time camera viewfinder with instant frame capture.
-  - ⚡ **1-Click Sample Test Drive:** Instant classification across 6 waste categories.
-  - 📊 **Confidence Meters & Recycling Guidance:** Actionable bin recommendations (Blue, Yellow, Green, Gray), preparation steps, and environmental impact facts.
-- **Interactive Swagger REST API Docs:** Available at [http://localhost:8000/docs](http://localhost:8000/docs)
-
-### 2. Edge / IoT API Usage (`curl` & Python)
-Integrate EcoSort directly into smart bins or microcontrollers:
+### 1. Public Online REST API (Live on Render)
+You can call the live public REST API from any computer, IoT device, or microcontroller without running a local server:
 
 ```bash
-# Classify an image via curl
-curl -X POST "http://localhost:8000/api/predict" \
+# Classify an image via curl using the live Render cloud API
+curl -X POST "https://ecosort-2h7b.onrender.com/api/predict" \
      -F "file=@your_waste_image.jpg"
 ```
 
 ```python
 import requests
 
-with open("item.jpg", "rb") as f:
-    response = requests.post("http://localhost:8000/api/predict", files={"file": f})
+# Send photo to the live cloud API
+with open("plastic_bottle.jpg", "rb") as f:
+    response = requests.post(
+        "https://ecosort-2h7b.onrender.com/api/predict", 
+        files={"file": f}
+    )
+
 result = response.json()
 print(f"Detected: {result['predicted_class']} ({result['confidence']}%) in {result['latency_ms']} ms")
 print(f"Recommended Bin: {result['guidance']['bin_name']}")
+print(f"Recyclability: {result['guidance']['recyclability']}")
+```
+
+- **Live Web Interface:** [https://ecosort-2h7b.onrender.com/](https://ecosort-2h7b.onrender.com/)
+- **Interactive Swagger Docs:** [https://ecosort-2h7b.onrender.com/docs](https://ecosort-2h7b.onrender.com/docs)
+- **Static GitHub Pages WASM App:** [https://Omega131.github.io/EcoSort/](https://Omega131.github.io/EcoSort/)
+
+### 2. Run Locally (Optional)
+```bash
+# Install dependencies
+pip install -r starter_kit/requirements.txt
+
+# Start local server at http://localhost:8000
+python run_app.py
 ```
 
 ### 3. Verification & Local Training
