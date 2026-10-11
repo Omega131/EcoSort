@@ -1,14 +1,3 @@
----
-title: EcoSort Edge AI Waste Classifier
-emoji: 🌱
-colorFrom: green
-colorTo: emerald
-sdk: docker
-app_port: 7860
-pinned: false
-license: mit
----
-
 <h1 align="center">EcoSort</h1>
 
 <img width="2400" height="1792" alt="Gemini_Generated_Image_770q63770q63770q" src="https://github.com/user-attachments/assets/04dbce26-55da-42f9-8bff-537ebd8dd04d" />
